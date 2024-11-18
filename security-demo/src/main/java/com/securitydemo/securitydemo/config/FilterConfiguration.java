@@ -5,12 +5,15 @@ import jakarta.servlet.DispatcherType;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
 import java.util.List;
 
 @Configuration
 public class FilterConfiguration {
 
     @Bean
+    @Profile("DISABLED")
     public FilterRegistrationBean<ApiKeyFilter> apiKeyFilter() {
         ApiKeyFilter filter = new ApiKeyFilter();
         var registrationBean = new FilterRegistrationBean<>(filter);

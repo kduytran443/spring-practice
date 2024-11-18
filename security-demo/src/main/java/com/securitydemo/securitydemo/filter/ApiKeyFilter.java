@@ -1,10 +1,16 @@
 package com.securitydemo.securitydemo.filter;
 
+import com.securitydemo.securitydemo.config.ApiKeyToken;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +19,9 @@ import java.util.Base64;
 @Slf4j
 @Getter
 public class ApiKeyFilter implements Filter {
+    private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
+            .getContextHolderStrategy();
+    private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
     private final String apiKey;
 
     public ApiKeyFilter() {
@@ -25,11 +34,17 @@ public class ApiKeyFilter implements Filter {
         log.debug("Filtering API Key");
 
         HttpServletRequest request = (HttpServletRequest) servletRequest;
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
         if (!getApiKey().equals(request.getHeader("x-api-key"))) {
             log.error("API Key does not matched");
             ((HttpServletResponse) servletResponse).sendError(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+        SecurityContext context = securityContextHolderStrategy.createEmptyContext();
+        ApiKeyToken apiKeyToken = new ApiKeyToken(getApiKey());
+        context.setAuthentication(apiKeyToken);
+        securityContextHolderStrategy.setContext(context);
+        securityContextRepository.saveContext(context, request, response);
 
         filterChain.doFilter(servletRequest, servletResponse);
     }
